@@ -212,7 +212,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                                      + " - max is " + maxClientCnxns );
                             sc.close();
                         } else {
-                            LOG.info("Accepted socket connection from "
+                            LOG.debug("Accepted socket connection from "
                                      + sc.socket().getRemoteSocketAddress());
                             sc.configureBlocking(false);
                             SelectionKey sk = sc.register(selector,

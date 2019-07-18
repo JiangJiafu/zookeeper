@@ -572,10 +572,31 @@ public class FileTxnLog implements TxnLog {
          * @throws IOException
          */
         private boolean goToNextLog() throws IOException {
-            if (storedFiles.size() > 0) {
+            while (storedFiles.size() > 0) {
                 this.logFile = storedFiles.remove(storedFiles.size()-1);
-                ia = createInputArchive(this.logFile);
-                return true;
+                //ia = createInputArchive(this.logFile);
+                try {
+                    ia = createInputArchive(this.logFile);
+                    return true;
+                } catch (EOFException ex) {
+                    // The header was incomplete. It means that this log file
+                    // doesn't contain any transactions. Delete it and skip to
+                    // the next one.  Deletion is essential, otherwise in the
+                    // future, this skipped but useless file can mislead init()
+                    // in using it as the last log file before the snapshot.
+                    LOG.warn("Failed to parse the header of the transaction " +
+                             "log file: {}. Deleting.", this.logFile, ex);
+                    if (this.logFile.delete() == false) {
+                        throw new IOException("Transaction log: " +
+                                this.logFile + " has an incomplete header, " +
+                                "but failed to delete it");
+                    }
+                } catch (Exception ex) {
+                    // The magic number is corrupted. We shouldn't simply skip
+                    // this log file since it might contain transactions that
+                    // have already been acknowledged.
+                    throw new IOException("magic number is corrupted:" + this.logFile); 
+                } 
             }
             return false;
         }
