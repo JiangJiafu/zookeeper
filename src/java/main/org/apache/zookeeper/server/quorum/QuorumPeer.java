@@ -647,7 +647,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     private void loadDataBase() {
         File updating = new File(getTxnFactory().getSnapDir(),
                                  UPDATING_EPOCH_FILENAME);
-		try {
+        try {
             zkDb.loadDataBase();
 
             // load the epochs
@@ -655,13 +655,19 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     		long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
             try {
             	currentEpoch = readLongFromFile(CURRENT_EPOCH_FILENAME);
-                if (epochOfZxid > currentEpoch && updating.exists()) {
+                /**
+                 * 无论是atomic写currentEpoch时产生的currentEpoch文件还是Updating文件都是为了防止写盘失败，
+                 * 查看过所有setCurrentEpoch方法的调用 tmp文件和updating都不能完全解决写盘失败的问题
+                 * 另外setCurrentEpoch方法即便是epochOfZxid>currentEpoch没有风险 因此直接覆盖掉没有修改成功的currentEpoch是没风险的
+                 * 反倒是如果不覆盖写反倒会导致zk启动失败 
+                 */
+                if (epochOfZxid > currentEpoch) {
                     LOG.info("{} found. The server was terminated after " +
                              "taking a snapshot but before updating current " +
                              "epoch. Setting current epoch to {}.",
                              UPDATING_EPOCH_FILENAME, epochOfZxid);
                     setCurrentEpoch(epochOfZxid);
-                    if (!updating.delete()) {
+                    if (updating.exists() && !updating.delete()) {
                         throw new IOException("Failed to delete " +
                                               updating.toString());
                     }

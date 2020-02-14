@@ -68,7 +68,7 @@ public class FastLeaderElection implements Election {
      * the system up again after long partitions. Currently 60 seconds.
      */
 
-    final static int maxNotificationInterval = 60000;
+    final static int maxNotificationInterval = 30000;
 
     /**
      * Broadcast my vote if this server hasn't sent any notification in 
