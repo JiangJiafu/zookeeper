@@ -255,7 +255,7 @@ public class CnxManagerTest extends ZKTestCase {
     class TestCnxManager extends QuorumCnxManager {
 
         TestCnxManager(QuorumPeer self) {
-            super(self.getId(), self.getView(), self.authServer,
+            super(self, self.getId(), self.getView(), self.authServer,
                     self.authLearner, self.tickTime * self.syncLimit,
                     self.getQuorumListenOnAllIPs(),
                     self.quorumCnxnThreadsSize, false);

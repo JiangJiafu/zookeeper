@@ -198,7 +198,16 @@ restart)
     sleep 3
     "$0" start ${@}
     ;;
-status)
+status|snapshot)
+    if [ "x$1" = "xstatus" ]
+    then
+        _4LW="srvr"
+        _4LW_GREP="Mode"
+    elif [ "x$1" = "xsnapshot" ]
+    then
+        _4LW="snap"
+        _4LW_GREP="snapshot"
+    fi
     # -q is necessary on some versions of linux where nc returns too quickly, and no stat result is output
     clientPortAddress=`$GREP "^[[:space:]]*clientPortAddress[^[:alpha:]]" "$ZOOCFG" | sed -e 's/.*=//'`
     if ! [ $clientPortAddress ]
@@ -206,10 +215,18 @@ status)
 	clientPortAddress="localhost"
     fi
     clientPort=`$GREP "^[[:space:]]*clientPort[^[:alpha:]]" "$ZOOCFG" | sed -e 's/.*=//'`
+    # prefer to use curl command tool via telnet protocol for getting zk server mode.
+    STAT=`which curl &>/dev/null && echo $_4LW | curl -s telnet://$clientPortAddress:$clientPort 2>/dev/null | $GREP $_4LW_GREP`
+    if [ "x$STAT" != "x" ]
+    then
+        echo $STAT
+        exit 0
+    fi
+
     STAT=`"$JAVA" "-Dzookeeper.log.dir=${ZOO_LOG_DIR}" "-Dzookeeper.root.logger=${ZOO_LOG4J_PROP}" \
              -cp "$CLASSPATH" $JVMFLAGS org.apache.zookeeper.client.FourLetterWordMain \
-             $clientPortAddress $clientPort srvr 2> /dev/null    \
-          | $GREP Mode`
+             $clientPortAddress $clientPort $_4LW 2> /dev/null    \
+          | $GREP $_4LW_GREP`
     if [ "x$STAT" = "x" ]
     then
         echo "Error contacting service. It is probably not running."
@@ -220,6 +237,6 @@ status)
     fi
     ;;
 *)
-    echo "Usage: $0 {start|start-foreground|stop|restart|status|upgrade|print-cmd}" >&2
+    echo "Usage: $0 {start|start-foreground|stop|restart|status|snapshot|upgrade|print-cmd}" >&2
 
 esac

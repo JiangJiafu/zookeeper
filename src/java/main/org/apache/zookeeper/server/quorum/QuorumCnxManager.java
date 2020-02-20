@@ -44,6 +44,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.zookeeper.server.ZooKeeperCriticalThread;
+import org.apache.zookeeper.server.ZooKeeperServerListener;
 import org.apache.zookeeper.server.ZooKeeperThread;
 import org.apache.zookeeper.server.quorum.auth.QuorumAuthLearner;
 import org.apache.zookeeper.server.quorum.auth.QuorumAuthServer;
@@ -151,6 +153,10 @@ public class QuorumCnxManager {
      * Counter to count worker threads
      */
     private AtomicInteger threadCnt = new AtomicInteger(0);
+    /**
+     * Quorum peer listener.
+     */
+    private ZooKeeperServerListener zksListener;
 
     static public class Message {
         
@@ -163,7 +169,7 @@ public class QuorumCnxManager {
         long sid;
     }
 
-    public QuorumCnxManager(final long mySid,
+    public QuorumCnxManager(QuorumPeer self, final long mySid,
                             Map<Long,QuorumPeer.QuorumServer> view,
                             QuorumAuthServer authServer,
                             QuorumAuthLearner authLearner,
@@ -171,12 +177,12 @@ public class QuorumCnxManager {
                             boolean listenOnAllIPs,
                             int quorumCnxnThreadsSize,
                             boolean quorumSaslAuthEnabled) {
-        this(mySid, view, authServer, authLearner, socketTimeout, listenOnAllIPs,
+        this(self, mySid, view, authServer, authLearner, socketTimeout, listenOnAllIPs,
                 quorumCnxnThreadsSize, quorumSaslAuthEnabled, new ConcurrentHashMap<Long, SendWorker>());
     }
 
     // visible for testing
-    public QuorumCnxManager(final long mySid,
+    public QuorumCnxManager(QuorumPeer self, final long mySid,
                             Map<Long,QuorumPeer.QuorumServer> view,
                             QuorumAuthServer authServer,
                             QuorumAuthLearner authLearner,
@@ -204,7 +210,8 @@ public class QuorumCnxManager {
                 quorumSaslAuthEnabled);
 
         initializeConnectionExecutors(quorumCnxnThreadsSize);
-
+        // initialize zkserver listener
+        zksListener = new QuorumPeerListenerImpl(self);
         // Starts listener thread that waits for connection requests 
         listener = new Listener();
     }
@@ -685,6 +692,13 @@ public class QuorumCnxManager {
     }
 
     /**
+     * Return quorum peer listener.
+     */
+    public ZooKeeperServerListener getZksListener() {
+        return zksListener;
+    }
+
+    /**
      * Reset the value of connection processing threads count to zero.
      */
     private void resetConnectionThreadCount() {
@@ -694,14 +708,14 @@ public class QuorumCnxManager {
     /**
      * Thread to listen on some port
      */
-    public class Listener extends ZooKeeperThread {
+    public class Listener extends ZooKeeperCriticalThread {
 
         volatile ServerSocket ss = null;
 
         public Listener() {
             // During startup of thread, thread name will be overridden to
             // specific election address
-            super("ListenerThread");
+            super("ListenerThread", zksListener);
         }
 
         /**

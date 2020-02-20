@@ -91,6 +91,7 @@ public class SnapshotFormatter {
             printStat(n.stat);
             if (n.data != null) {
                 System.out.println("  dataLength = " + n.data.length);
+                System.out.println("  dataContent = " + new String(n.data));
             } else {
                 System.out.println("  no data");
             }

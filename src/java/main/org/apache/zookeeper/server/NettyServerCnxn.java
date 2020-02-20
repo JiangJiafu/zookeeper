@@ -630,6 +630,24 @@ public class NettyServerCnxn extends ServerCnxn {
         }
     }
 
+    private class SnapCommand extends CommandThread {
+
+        public SnapCommand (PrintWriter pw) {
+            super(pw);
+        }
+
+        @Override
+        public void commandRun() {
+            if (!isZKServerRunning()) {
+                pw.println(ZK_NOT_SERVING);
+                return;
+            }
+
+            zkServer.takeSnapshot();
+            pw.println("take snapshot success.");
+        }
+    }
+
     private class NopCommand extends CommandThread {
         private String msg;
 
@@ -727,6 +745,10 @@ public class NettyServerCnxn extends ServerCnxn {
         } else if (len == isroCmd) {
             IsroCommand isro = new IsroCommand(pwriter);
             isro.start();
+            return true;
+        } else if (len == snapCmd) {
+            SnapCommand snap = new SnapCommand(pwriter);
+            snap.start();
             return true;
         }
         return false;

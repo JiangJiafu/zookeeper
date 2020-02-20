@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.zookeeper.common.Time;
 import org.apache.zookeeper.jmx.MBeanRegistry;
-import org.apache.zookeeper.server.ZooKeeperThread;
+import org.apache.zookeeper.server.ZooKeeperCriticalThread;
 import org.apache.zookeeper.server.quorum.QuorumCnxManager.Message;
 import org.apache.zookeeper.server.quorum.QuorumPeer.LearnerType;
 import org.apache.zookeeper.server.quorum.QuorumPeer.QuorumServer;
@@ -236,12 +236,12 @@ public class FastLeaderElection implements Election {
          * method run(), and processes such messages.
          */
 
-        class WorkerReceiver extends ZooKeeperThread {
+        class WorkerReceiver extends ZooKeeperCriticalThread {
             volatile boolean stop;
             QuorumCnxManager manager;
 
             WorkerReceiver(QuorumCnxManager manager) {
-                super("WorkerReceiver");
+                super("WorkerReceiver", manager.getZksListener());
                 this.stop = false;
                 this.manager = manager;
             }
@@ -422,12 +422,12 @@ public class FastLeaderElection implements Election {
          * and queues it on the manager's queue.
          */
 
-        class WorkerSender extends ZooKeeperThread {
+        class WorkerSender extends ZooKeeperCriticalThread {
             volatile boolean stop;
             QuorumCnxManager manager;
 
             WorkerSender(QuorumCnxManager manager){
-                super("WorkerSender");
+                super("WorkerSender", manager.getZksListener());
                 this.stop = false;
                 this.manager = manager;
             }
@@ -474,17 +474,15 @@ public class FastLeaderElection implements Election {
 
             this.ws = new WorkerSender(manager);
 
-            Thread t = new Thread(this.ws,
-                    "WorkerSender[myid=" + self.getId() + "]");
-            t.setDaemon(true);
-            t.start();
+            this.ws.setName("WorkerSender[myid=" + self.getId() + "]");
+            this.ws.setDaemon(true);
+            this.ws.start();
 
             this.wr = new WorkerReceiver(manager);
 
-            t = new Thread(this.wr,
-                    "WorkerReceiver[myid=" + self.getId() + "]");
-            t.setDaemon(true);
-            t.start();
+            this.wr.setName("WorkerReceiver[myid=" + self.getId() + "]");
+            this.wr.setDaemon(true);
+            this.wr.start();
         }
 
         /**

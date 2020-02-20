@@ -1546,7 +1546,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     public QuorumCnxManager createCnxnManager() {
-        return new QuorumCnxManager(this.getId(),
+        return new QuorumCnxManager(this, this.getId(),
                                     this.getView(),
                                     this.authServer,
                                     this.authLearner,

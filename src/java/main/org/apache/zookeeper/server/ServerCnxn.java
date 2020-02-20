@@ -240,6 +240,12 @@ public abstract class ServerCnxn implements Stats, Watcher {
     protected final static int isroCmd = ByteBuffer.wrap("isro".getBytes())
             .getInt();
 
+    /*
+     * 2019.09.10 notify zk server to take snapshot.
+     */
+    protected final static int snapCmd = ByteBuffer.wrap("snap".getBytes())
+            .getInt();
+
     final static Map<Integer, String> cmd2String = new HashMap<Integer, String>();
 
     private static final String ZOOKEEPER_4LW_COMMANDS_WHITELIST = "zookeeper.4lw.commands.whitelist";
@@ -344,6 +350,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
         cmd2String.put(wchsCmd, "wchs");
         cmd2String.put(mntrCmd, "mntr");
         cmd2String.put(isroCmd, "isro");
+        cmd2String.put(snapCmd, "snap");
     }
 
     protected void packetReceived() {

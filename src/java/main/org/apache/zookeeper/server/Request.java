@@ -136,7 +136,7 @@ public class Request {
         }
     }
 
-    static boolean isQuorum(int type) {
+    static public boolean isQuorum(int type) {
         switch (type) {
         case OpCode.exists:
         case OpCode.getACL:

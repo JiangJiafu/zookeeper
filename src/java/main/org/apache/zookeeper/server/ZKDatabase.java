@@ -230,7 +230,7 @@ public class ZKDatabase {
         return zxid;
     }
 
-    private void addCommittedProposal(TxnHeader hdr, Record txn) {
+    public void addCommittedProposal(TxnHeader hdr, Record txn) {
         Request r = new Request(null, 0, hdr.getCxid(), hdr.getType(), null, null);
         r.txn = txn;
         r.hdr = hdr;

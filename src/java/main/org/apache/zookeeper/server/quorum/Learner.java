@@ -354,7 +354,7 @@ public class Learner {
         // In the DIFF case we don't need to do a snapshot because the transactions will sync on top of any existing snapshot
         // For SNAP and TRUNC the snapshot is needed to save that history
         boolean snapshotNeeded = true;
-        boolean syncSnapshot = false;
+        boolean syncSnapshot = true;
         readPacket(qp);
         LinkedList<Long> packetsCommitted = new LinkedList<Long>();
         LinkedList<PacketInFlight> packetsNotCommitted = new LinkedList<PacketInFlight>();
@@ -433,6 +433,10 @@ public class Learner {
                             LOG.warn("Committing " + qp.getZxid() + ", but next proposal is " + pif.hdr.getZxid());
                         } else {
                             zk.processTxn(pif.hdr, pif.rec);
+                            // do not add non quorum packets to the queue.
+                            if (Request.isQuorum(pif.hdr.getType())) {
+                                zk.getZKDatabase().addCommittedProposal(pif.hdr, pif.rec);
+                            }
                             packetsNotCommitted.remove();
                         }
                     } else {

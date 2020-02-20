@@ -81,7 +81,14 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
     public void configure(InetSocketAddress addr, int maxcc) throws IOException {
         configureSaslLogin();
 
-        thread = new ZooKeeperThread(this, "NIOServerCxn.Factory:" + addr);
+        thread = new ZooKeeperThread(this, "NIOServerCxn.Factory:" + addr) {
+            @Override
+            protected void handleException(String thName, Throwable e) {
+                super.handleException(thName, e);
+                // PV-5802 if front-end connections handle thread error occurred, then exit.
+                System.exit(ExitCode.UNEXPECTED_ERROR);
+            }
+        };
         thread.setDaemon(true);
         maxClientCnxns = maxcc;
         this.ss = ServerSocketChannel.open();

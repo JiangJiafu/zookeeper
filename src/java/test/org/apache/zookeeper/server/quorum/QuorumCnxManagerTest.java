@@ -710,7 +710,7 @@ public class QuorumCnxManagerTest extends ZKTestCase {
     }
 
     private QuorumCnxManager createAndStartManager(long sid, ConcurrentHashMap<Long, QuorumCnxManager.SendWorker> senderWorkerMap) {
-        QuorumCnxManager peer = new QuorumCnxManager(sid, peers,
+        QuorumCnxManager peer = new QuorumCnxManager(null, sid, peers,
                 new NullQuorumAuthServer(), new NullQuorumAuthLearner(), 10000,
                 false, quorumCnxnThreadsSize, false,
                 senderWorkerMap);
@@ -740,7 +740,7 @@ public class QuorumCnxManagerTest extends ZKTestCase {
                 "NOT_USING_KRB_PRINCIPAL", learnerLoginContext);
         QuorumAuthServer authServer = new SaslQuorumAuthServer(serverRequireSasl,
                 serverLoginContext, authzHosts);
-        QuorumCnxManager peer = new QuorumCnxManager(sid, peers,
+        QuorumCnxManager peer = new QuorumCnxManager(null, sid, peers,
                 authServer, authClient, 10000, false, quorumCnxnThreadsSize, true, senderWorkerMap);
         executor.submit(peer.listener);
         InetSocketAddress electionAddr = peer.view.get(sid).electionAddr;
