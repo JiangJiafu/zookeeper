@@ -19,10 +19,12 @@ public class DiskMonitLog extends ZooKeeperThread {
     private static final String DEFAULT_CHARSET_NAME = "UTF-8";
     private static final int PRINT_TIME = 30;
     private volatile boolean started = false;
+    private boolean diskPrintEnabled = false;
     private static Semaphore semaphore = new Semaphore(0);
 
-    public DiskMonitLog() {
+    private DiskMonitLog() {
         super("-DiskMonitLog");
+        setDiskPrintEnabled();
     }
 
     public static DiskMonitLog getInstance() { return INSTANCE; }
@@ -31,10 +33,37 @@ public class DiskMonitLog extends ZooKeeperThread {
         return started;
     }
 
+    public void setDiskPrintEnabled() {
+        try {
+            String value = System.getProperty("zookeeper.diskPrintEnabled");
+            if (value.toLowerCase().equals("true")) {
+                diskPrintEnabled = true;
+            } else if (value.toLowerCase().equals("false")) {
+                diskPrintEnabled = false;
+            } else {
+                LOG.error("Invalid option "
+                        + value
+                        + " for disk print enabled. Choose 'true' or 'false.'");
+                diskPrintEnabled = false;
+            }
+        } catch (IllegalArgumentException e) {
+            // for upgrade zk ,  parameter diskPrintEnabled is empty.
+            diskPrintEnabled = false;
+        }
+    }
+
+    public boolean isDiskPrintEnabled() {
+        return diskPrintEnabled;
+    }
+
     @Override
     public synchronized void start() {
-        started = true;
-        super.start();
+        if (diskPrintEnabled) {
+            started = true;
+            super.start();
+        } else {
+            LOG.warn("No need to start disk monitor thread.");
+        }
     }
 
     @Override
@@ -106,10 +135,14 @@ public class DiskMonitLog extends ZooKeeperThread {
             return new ExecuteResult(exitValue,
                     stdOutputStream.toString(DEFAULT_CHARSET_NAME),
                     errOutputStream.toString(DEFAULT_CHARSET_NAME));
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
+            LOG.error("", e);
+            return new ExecuteResult(-1, "", e.getMessage());
+        } catch (IOException e) {
             LOG.error("", e);
             return new ExecuteResult(-1, "", e.getMessage());
         }
+
     }
 
     static class StreamGobbler extends Thread {
