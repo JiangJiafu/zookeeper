@@ -36,6 +36,10 @@ public class DiskMonitLog extends ZooKeeperThread {
     public void setDiskPrintEnabled() {
         try {
             String value = System.getProperty("zookeeper.diskPrintEnabled");
+            if (value == null) {
+                diskPrintEnabled = false;
+                return;
+            }
             if (value.toLowerCase().equals("true")) {
                 diskPrintEnabled = true;
             } else if (value.toLowerCase().equals("false")) {
